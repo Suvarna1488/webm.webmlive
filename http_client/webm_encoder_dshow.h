@@ -133,7 +133,7 @@ class WebmEncoderImpl {
   ~WebmEncoderImpl();
   // Creates WebM encoder graph. Returns |kSuccess| upon success, or a
   // |WebmEncoder| status code upon failure.
-  int Init(const std::wstring& out_file_name);
+  int Init(const WebmEncoderSettings& settings);
   // Runs encoder thread. Returns |kSuccess| upon success, or a |WebmEncoder|
   // status code upon failure.
   int Run();
@@ -152,6 +152,8 @@ class WebmEncoderImpl {
   int CreateVpxEncoder();
   // Connects video source to VP8 encoder.
   int ConnectVideoSourceToVpxEncoder();
+  // Configures |vpx_encoder_|.
+  int ConfigureVpxEncoder();
   // Loads first available audio capture source and adds it to the graph.
   int CreateAudioSource(std::wstring video_src);
   // Loads the Vorbis encoder and adds it to the graph.
@@ -199,7 +201,9 @@ class WebmEncoderImpl {
   // Encoder thread object.
   boost::shared_ptr<boost::thread> encode_thread_;
   // Output file name.
-  std::wstring out_file_name_;
+  std::string out_file_name_;
+  // Keyframe interval.
+  double keyframe_interval_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(WebmEncoderImpl);
 };
 
@@ -285,14 +289,36 @@ class PinInfo {
   bool IsVideo() const;
   // Returns true for pins with media type stream.
   bool IsStream() const;
+  // Utility function for free'ing |AM_MEDIA_TYPE| pointers.
+  static void FreeMediaTypeData(AM_MEDIA_TYPE* ptr_media_type);
  private:
   // Disallow construction without IPinPtr.
   PinInfo();
-  // Utility function used to free media type pointers.
-  void FreeMediaType(AM_MEDIA_TYPE* ptr_media_type) const;
   // Copy of |ptr_pin| from |Init|
   const IPinPtr pin_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(PinInfo);
+};
+
+// Utility class for obtaining video pin specific information.
+class VideoPinInfo {
+ public:
+  enum {
+    kNotConnected = -3,
+    kNotVideo = -2,
+    kInvalidArg = -1,
+    kSuccess = 0,
+  };
+  VideoPinInfo();
+  ~VideoPinInfo();
+  // Copies |pin|, confirms that it's a video pin, and returns |kSuccess|.
+  // Returns |kInvalidArg| if |pin| is empty, or |kNotVideo| if
+  // |PinInfo::IsVideo| returns false. Note that |pin| *must* be connected:
+  // |VideoPinInfo| uses |ConnectionMediaType|.
+  int Init(const IPinPtr& pin);
+  double frames_per_second() const;
+ private:
+  IPinPtr pin_;
+  WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoPinInfo);
 };
 
 }  // namespace webmlive

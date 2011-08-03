@@ -30,9 +30,14 @@
 #include "http_uploader.h"
 #include "webm_encoder.h"
 
+namespace {
+  const double kDefaultKeyframeInterval = 2.0;
+}  // anonymous namespace
+
 void set_command_line_options(
     boost::program_options::options_description& opts_desc) {
   namespace po = boost::program_options;
+  double opt;
   opts_desc.add_options()
       ("help", "Show this help message.")
       ("file", po::value<std::string>(), "Path for local WebM file.")
@@ -40,11 +45,14 @@ void set_command_line_options(
       // use of |composing| tells program_options to collect multiple --header
       // instances into a single vector of strings
       ("header",
-       po::value<std::vector<std::string>>()->composing(),
-       "HTTP header, must be specified as name:value.")
+          po::value<std::vector<std::string>>()->composing(),
+          "HTTP header, must be specified as name:value.")
       ("var",
-       po::value<std::vector<std::string>>()->composing(),
-       "Form variable, must be specified as name:value.");
+          po::value<std::vector<std::string>>()->composing(),
+          "Form variable, must be specified as name:value."),
+      ("keyframe_interval",
+          po::value<double>(&opt)->default_value(kDefaultKeyframeInterval),
+          "Keyframe interval in seconds.");
 }
 
 int store_string_map_entries(const std::vector<std::string>& unparsed_entries,
@@ -73,8 +81,8 @@ int store_string_map_entries(const std::vector<std::string>& unparsed_entries,
 // Calls |Init| and |Run| on |encoder| to start the encode of a WebM file.
 // TODO(tomfinegan): Add capture and encoder settings configuration.
 int start_encoder(webmlive::WebmEncoder& encoder,
-                  const webmlive::HttpUploaderSettings& settings) {
-  int status = encoder.Init(settings.local_file);
+                  const webmlive::WebmEncoderSettings& settings) {
+  int status = encoder.Init(settings);
   if (status) {
     DBGLOG("encoder Init failed, status=" << status);
     return status;
@@ -102,25 +110,26 @@ int start_uploader(webmlive::HttpUploader& uploader,
   return status;
 }
 
-int client_main(webmlive::HttpUploaderSettings& settings) {
+int client_main(webmlive::HttpUploaderSettings& uploader_settings,
+                const webmlive::WebmEncoderSettings& encoder_settings) {
   // Setup the file reader.  This is a little strange since |reader| actually
   // creates the output file that is used by the encoder.
   webmlive::FileReader reader;
-  int status = reader.CreateFile(settings.local_file);
+  int status = reader.CreateFile(uploader_settings.local_file);
   if (status) {
     fprintf(stderr, "file reader init failed, status=%d.\n", status);
     return EXIT_FAILURE;
   }
   // Start encoding the WebM file.
   webmlive::WebmEncoder encoder;
-  status = start_encoder(encoder, settings);
+  status = start_encoder(encoder, encoder_settings);
   if (status) {
     fprintf(stderr, "start_encoder failed, status=%d\n", status);
     return EXIT_FAILURE;
   }
   // Start the uploader thread.
   webmlive::HttpUploader uploader;
-  status = start_uploader(uploader, settings);
+  status = start_uploader(uploader, uploader_settings);
   if (status) {
     fprintf(stderr, "start_uploader failed, status=%d\n", status);
     encoder.Stop();
@@ -238,15 +247,15 @@ int _tmain(int argc, _TCHAR* argv[]) {
   DBGLOG("file: " << var_map["file"].as<std::string>().c_str());
   DBGLOG("url: " << var_map["url"].as<std::string>().c_str());
   // TODO(tomfinegan): Need to add capture and encoder settings...
-  webmlive::HttpUploaderSettings settings;
-  settings.local_file = var_map["file"].as<std::string>();
-  settings.target_url = var_map["url"].as<std::string>();
+  webmlive::HttpUploaderSettings uploader_settings;
+  uploader_settings.local_file = var_map["file"].as<std::string>();
+  uploader_settings.target_url = var_map["url"].as<std::string>();
   // Parse and store any HTTP header name:value pairs passed via command line.
   if (var_map.count("header")) {
     using std::string;
     using std::vector;
     const vector<string>& headers = var_map["header"].as<vector<string>>();
-    if (store_string_map_entries(headers, settings.headers)) {
+    if (store_string_map_entries(headers, uploader_settings.headers)) {
       fprintf(stderr, "ERROR: command line HTTP header parse failed!");
       return EXIT_FAILURE;
     }
@@ -257,12 +266,16 @@ int _tmain(int argc, _TCHAR* argv[]) {
     using std::string;
     using std::vector;
     const vector<string>& form_vars = var_map["var"].as<vector<string>>();
-    if (store_string_map_entries(form_vars, settings.form_variables)) {
+    if (store_string_map_entries(form_vars,
+                                 uploader_settings.form_variables)) {
       fprintf(stderr, "ERROR: command line form variable parse failed!");
       return EXIT_FAILURE;
     }
   }
-  return client_main(settings);
+  webmlive::WebmEncoderSettings encoder_settings;
+  encoder_settings.output_file_name = uploader_settings.local_file;
+  encoder_settings.keyframe_interval = kDefaultKeyframeInterval;
+  return client_main(uploader_settings, encoder_settings);
 }
 
 
