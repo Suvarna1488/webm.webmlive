@@ -90,7 +90,7 @@ int start_encoder(webmlive::WebmEncoder& encoder,
 // uploads buffers when |UploadBuffer| is called on the uploader.
 int start_uploader(webmlive::HttpUploader& uploader,
                    webmlive::HttpUploaderSettings& settings) {
-  int status = uploader.Init(&settings);
+  int status = uploader.Init(settings);
   if (status) {
     DBGLOG("uploader Init failed, status=" << status);
     return status;
