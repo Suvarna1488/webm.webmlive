@@ -11,14 +11,10 @@
 #include <stdio.h>
 #include <tchar.h>
 
-#include <cstdio>
-#include <iomanip>
-#include <iostream>
 #include <string>
 #include <vector>
 
 #include "boost/scoped_array.hpp"
-#include "boost/thread/thread.hpp"
 
 #include "debug_util.h"
 #include "buffer_util.h"
@@ -27,7 +23,15 @@
 #include "webm_encoder.h"
 
 namespace {
-  const double kDefaultKeyframeInterval = 2.0;
+enum {
+  kBadFormat = -3,
+  kNoMemory = -2,
+  kInvalidArg = - 1,
+  kSuccess = 0,
+};
+const double kDefaultKeyframeInterval = 2.0;
+typedef std::vector<std::string> StringVector;
+typedef std::vector<std::wstring> WStringVector;
 }  // anonymous namespace
 
 void usage(const wchar_t** argv) {
@@ -53,19 +57,47 @@ int store_string_map_entries(const std::vector<std::string>& unparsed_entries,
       // TODO(tomfinegan): allow empty entries?
       DBGLOG("ERROR: cannot parse entry, should be name:value, got="
              << entry.c_str());
-      return ERROR_BAD_FORMAT;
+      return kBadFormat;
     }
     out_map[entry.substr(0, sep).c_str()] = entry.substr(sep+1);
     ++entry_iter;
   }
-  return ERROR_SUCCESS;
+  return kSuccess;
+}
+
+int convert_wstring_to_string(const std::wstring& wstr, std::string& str) {
+  // Conversion buffer for |wcstombs| calls.
+  const size_t buf_size = wstr.length() + 1;
+  boost::scoped_array<char> temp_str(new (std::nothrow) char[buf_size]);
+  if (!temp_str) {
+    fprintf(stderr, "Cannot allocate wide char conversion buffer!\n");
+    return kNoMemory;
+  }
+  memset(temp_str.get(), 0, buf_size);
+  wcstombs(temp_str.get(), wstr.c_str(), wstr.length());
+  str = temp_str.get();
+  return kSuccess;
+}
+
+int convert_wstring_vector_to_string_vector(const WStringVector& wstrings,
+                                            StringVector& strings) {
+  // Convert |wstrings| vals and store them in |strings|.
+  WStringVector::const_iterator i = wstrings.begin();
+  std::string temp_str;
+  for (; i != wstrings.end(); ++i) {
+    int status = convert_wstring_to_string(*i, temp_str);
+    if (status) {
+      DBGLOG("conversion failed, status=" << status);
+      return status;
+    }
+    strings.push_back(std::string(temp_str));
+  }
+  return kSuccess;
 }
 
 void parse_command_line(int argc, const wchar_t* argv[],
                         webmlive::HttpUploaderSettings& uploader_settings,
                         webmlive::WebmEncoderSettings& encoder_settings) {
-
-  typedef std::vector<std::wstring> WStringVector;
   WStringVector unparsed_widechar_headers;
   WStringVector unparsed_widechar_vars;
   encoder_settings.keyframe_interval = kDefaultKeyframeInterval;
@@ -75,14 +107,20 @@ void parse_command_line(int argc, const wchar_t* argv[],
       usage(argv);
       exit(EXIT_SUCCESS);
     } else if (!wcscmp(L"--file", argv[i])) {
-      std::ostringstream str;
-      str << std::wstring(argv[++i]).c_str();
-      uploader_settings.local_file = str.str();
+      int status = convert_wstring_to_string(std::wstring(argv[++i]),
+                                             uploader_settings.local_file);
+      if (status) {
+        fprintf(stderr, "file name conversion failed, status=%d\n", status);
+        exit(EXIT_FAILURE);
+      }
       encoder_settings.output_file_name = uploader_settings.local_file;
     } else if (!wcscmp(L"--url", argv[i])) {
-      std::ostringstream str;
-      str << *argv[++i];
-      uploader_settings.target_url = str.str();
+      int status = convert_wstring_to_string(std::wstring(argv[++i]),
+                                             uploader_settings.target_url);
+      if (status) {
+        fprintf(stderr, "URL conversion failed, status=%d\n", status);
+        exit(EXIT_FAILURE);
+      }
     } else if (!wcscmp(L"--header", argv[i])) {
       unparsed_widechar_headers.push_back(argv[++i]);
     } else if (!wcscmp(L"--var", argv[i])) {
@@ -93,22 +131,22 @@ void parse_command_line(int argc, const wchar_t* argv[],
     }
   }
   // Store user HTTP headers.
-  typedef std::vector<std::string> StringVector;
   StringVector unparsed_headers;
-  WStringVector::const_iterator i = unparsed_widechar_headers.begin();
-  for (; i != unparsed_widechar_headers.end(); ++i) {
-    std::ostringstream str;
-    str << (*i).c_str();//unparsed_widechar_headers[i];
-    unparsed_headers.push_back(str.str());
+  int status;
+  status = convert_wstring_vector_to_string_vector(unparsed_widechar_headers,
+                                                   unparsed_headers);
+  if (status) {
+    fprintf(stderr, "Cannot convert wide char headers!\n");
+    exit(EXIT_FAILURE);
   }
   store_string_map_entries(unparsed_headers, uploader_settings.headers);
   // Store user form variables.
   StringVector unparsed_vars;
-  i = unparsed_widechar_vars.begin();
-  for (; i != unparsed_widechar_vars.end(); ++i) {
-    std::ostringstream str;
-    str << (*i).c_str();//unparsed_widechar_vars[i];
-    unparsed_vars.push_back(str.str());
+  status = convert_wstring_vector_to_string_vector(unparsed_widechar_vars,
+                                                   unparsed_vars);
+  if (status) {
+    fprintf(stderr, "Cannot convert wide char form variables!\n");
+    exit(EXIT_FAILURE);
   }
   store_string_map_entries(unparsed_vars, uploader_settings.form_variables);
 }
@@ -209,6 +247,7 @@ int client_main(webmlive::HttpUploaderSettings& uploader_settings,
       if (status) {
         DBGLOG("BufferData failed, status=" << status);
         fprintf(stderr, "\nERROR: cannot add to chunk buffer!\n");
+        exit_code = EXIT_FAILURE;
         break;
       }
     }
