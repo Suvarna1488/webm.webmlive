@@ -99,6 +99,7 @@ int WebmEncoderImpl::Init(const WebmEncoderSettings& settings) {
     DBGLOG("ConnectVideoSourceToVpxEncoder failed: " << status);
     return WebmEncoder::kVideoEncoderError;
   }
+  keyframe_interval_ = settings.keyframe_interval;
   status = ConfigureVpxEncoder();
   if (status) {
     DBGLOG("ConfigureVpxEncoder failed: " << status);
@@ -268,8 +269,7 @@ int WebmEncoderImpl::CreateVideoSource(std::wstring video_src) {
   return kSuccess;
 }
 
-// Creates the VP8 encoder filter, adds it to the graph, and sets applies
-// minimal settings required for a realtime encode.
+// Creates the VP8 encoder filter and adds it to the graph.
 int WebmEncoderImpl::CreateVpxEncoder() {
   HRESULT hr = vpx_encoder_.CreateInstance(CLSID_VP8Encoder);
   if (FAILED(hr)) {
@@ -320,6 +320,7 @@ int WebmEncoderImpl::ConnectVideoSourceToVpxEncoder() {
   return kSuccess;
 }
 
+// Sets minimal settings required for a realtime encode.
 int WebmEncoderImpl::ConfigureVpxEncoder() {
   _COM_SMARTPTR_TYPEDEF(IVP8Encoder, __uuidof(IVP8Encoder));
   IVP8EncoderPtr vp8_config(vpx_encoder_);
