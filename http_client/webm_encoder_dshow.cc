@@ -32,9 +32,14 @@ const wchar_t* const kFileWriterName = L"FileWriter";
 const int kVpxEncoderBitrate = 500;
 }  // namespace
 
-// Convert media time (100 nanosecond ticks) to seconds.
+// Converts media time (100 nanosecond ticks) to seconds.
 double media_time_to_seconds(REFERENCE_TIME media_time) {
   return media_time / 10000000.0;
+}
+
+// Converts seconds to media time (100 nanosecond ticks).
+REFERENCE_TIME seconds_to_media_time(double seconds) {
+  return static_cast<REFERENCE_TIME>(seconds * 10000000);
 }
 
 WebmEncoderImpl::WebmEncoderImpl()
@@ -339,46 +344,17 @@ int WebmEncoderImpl::ConfigureVpxEncoder() {
     DBGLOG("ERROR: cannot set VP8 encoder bitrate." << HRLOG(hr));
     return kVpxConfigureError;
   }
-  // Obtain capture frame rate, and set VP8 encoder filter keyframe generation
-  // settings that obey |WebmEncoderSettings::keyframe_interval|.
-  PinFinder pin_finder;
-  int status = pin_finder.Init(video_source_);
-  if (status) {
-    DBGLOG("ERROR: PinFinder Init failure, status=" << status);
-    return kVpxConfigureError;
-  }
-  IPinPtr capture_pin = pin_finder.FindVideoOutputPin(0);
-  if (!capture_pin) {
-    DBGLOG("ERROR: cannot find video capture output pin!");
-    return kVpxConfigureError;
-  }
-  VideoPinInfo capture_pin_info;
-  status = capture_pin_info.Init(capture_pin);
-  if (status) {
-    DBGLOG("ERROR: VideoPinInfo Init failure, status=" << status);
-    return kVpxConfigureError;
-  }
-  double capture_fps = capture_pin_info.frames_per_second();
-  if (capture_fps <= 0.0) {
-    DBGLOG("ERROR: capture source has no frame rate!");
-    return kVpxConfigureError;
-  }
-  // Capture frame rate obtained: set encoder filter keyframe interval.
-  int keyframe_interval = static_cast<int>(capture_fps * keyframe_interval_);
-  // TODO(tomfinegan): allow user to control minimum interval.
-  hr = vp8_config->SetKeyframeMode(kKeyframeModeAuto);
+  // Set keyframe interval.
+  hr = vp8_config->SetKeyframeMode(kKeyframeModeDisabled);
   if (FAILED(hr)) {
     DBGLOG("ERROR: cannot set VP8 keyframe mode." << HRLOG(hr));
     return kVpxConfigureError;
   }
-  hr = vp8_config->SetKeyframeMinInterval(static_cast<int>(keyframe_interval));
+  const REFERENCE_TIME keyframe_interval =
+      seconds_to_media_time(keyframe_interval_);
+  hr = vp8_config->SetFixedKeyframeInterval(keyframe_interval);
   if (FAILED(hr)) {
-    DBGLOG("ERROR: cannot set VP8 minimum keyframe interval." << HRLOG(hr));
-    return kVpxConfigureError;
-  }
-  hr = vp8_config->SetKeyframeMaxInterval(static_cast<int>(keyframe_interval));
-  if (FAILED(hr)) {
-    DBGLOG("ERROR: cannot set VP8 maximum keyframe interval." << HRLOG(hr));
+    DBGLOG("ERROR: cannot set VP8 keyframe interval." << HRLOG(hr));
     return kVpxConfigureError;
   }
   return kSuccess;
