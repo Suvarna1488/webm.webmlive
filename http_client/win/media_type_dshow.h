@@ -58,6 +58,8 @@ class MediaType {
 class VideoMediaType : public MediaType {
  public:
   typedef WebmEncoderConfig::VideoCaptureConfig VideoConfig;
+  // TODO(tomfinegan): remove |VideoSubType| and the bit count constants, and
+  //                   use the ones in video_types.h.
   enum VideoSubType {
     kI420 = 0,
     kYV12 = 1,
