@@ -225,6 +225,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\video_types.h"
+				>
+			</File>
+			<File
 				RelativePath=".\webm_buffer_parser.cc"
 				>
 			</File>
@@ -265,6 +269,10 @@
 				</File>
 				<File
 					RelativePath=".\win\video_sink_filter.cc"
+					>
+				</File>
+				<File
+					RelativePath=".\win\video_sink_filter.h"
 					>
 				</File>
 				<File
