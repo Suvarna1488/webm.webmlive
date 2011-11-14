@@ -31,7 +31,12 @@ class VideoSinkPin : public CBaseInputPin {
                HRESULT* ptr_result,
                LPCWSTR ptr_pin_name);
   virtual ~VideoSinkPin();
-
+  // Stores preferred media type for |type_index| in |ptr_media_type|. Supports
+  // only a single type, I420. 
+  // Return values:
+  // |S_OK| - success, |type_index| in range and |ptr_media_type| written.
+  // |VFW_S_NO_MORE_ITEMS| - |type_index| != 0.
+  // |E_OUTOFMEMORY| - could not allocate format buffer.
   HRESULT GetMediaType(int32 type_index, CMediaType* ptr_media_type);
   HRESULT CheckMediaType(const CMediaType* ptr_media_type);
   STDMETHODIMP Receive(IMediaSample* ptr_sample);
