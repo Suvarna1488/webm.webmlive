@@ -86,7 +86,55 @@ HRESULT VideoSinkPin::GetMediaType(int32 type_index,
 }
 
 HRESULT VideoSinkPin::CheckMediaType(const CMediaType* ptr_media_type) {
-  return E_NOTIMPL;
+  // Confirm media type is acceptable.
+  const GUID* const ptr_type_guid = ptr_media_type->Type();
+  if (!ptr_type_guid || *ptr_type_guid != MEDIATYPE_Video) {
+    return VFW_E_TYPE_NOT_ACCEPTED;
+  }
+  // Confirm that subtype and formattype GUIDs can be obtained.
+  const GUID* const ptr_subtype_guid = ptr_media_type->Subtype();
+  const GUID* const ptr_format_guid = ptr_media_type->FormatType();
+  if (!ptr_subtype_guid || !ptr_format_guid) {
+      return E_INVALIDARG;
+  }
+  // Inspect the format stored in |ptr_media_type|.
+  const GUID& format_guid = *ptr_format_guid;
+  const GUID& subtype_guid = *ptr_subtype_guid;
+  if (format_guid == FORMAT_VideoInfo) {
+    const VIDEOINFOHEADER* const ptr_video_info =
+        reinterpret_cast<VIDEOINFOHEADER*>(ptr_media_type->Format());
+    if (!ptr_video_info) {
+      return VFW_E_TYPE_NOT_ACCEPTED;
+    }
+    const DWORD& four_cc = ptr_video_info->bmiHeader.biCompression;
+    if (subtype_guid != MEDIASUBTYPE_I420 ||
+        four_cc != MAKEFOURCC('I','4','2','0')) {
+      return VFW_E_TYPE_NOT_ACCEPTED;
+    }
+    // Store current format in |actual_config_|; |CBasePin::ReceiveConnection|
+    // always calls |CheckMediaType|.
+    actual_config_.width = ptr_video_info->bmiHeader.biWidth;
+    actual_config_.height = abs(ptr_video_info->bmiHeader.biHeight);
+  } else if (format_guid == FORMAT_VideoInfo2) {
+    const VIDEOINFOHEADER2* const ptr_video_info =
+        reinterpret_cast<VIDEOINFOHEADER2*>(ptr_media_type->Format());
+    if (!ptr_video_info) {
+      return VFW_E_TYPE_NOT_ACCEPTED;
+    }
+    const DWORD& four_cc = ptr_video_info->bmiHeader.biCompression;
+    if (subtype_guid != MEDIASUBTYPE_I420 ||
+        four_cc != MAKEFOURCC('I','4','2','0')) {
+      return VFW_E_TYPE_NOT_ACCEPTED;
+    }
+    // Store current format in |actual_config_|; |CBasePin::ReceiveConnection|
+    // always calls |CheckMediaType|.
+    actual_config_.width = ptr_video_info->bmiHeader.biWidth;
+    actual_config_.height = abs(ptr_video_info->bmiHeader.biHeight);
+  }
+  LOG(INFO) << "\n CheckMediaType actual settings\n"
+            << "   width=" << requested_config_.width << "\n"
+            << "   height=" << requested_config_.height;
+  return S_OK;
 }
 
 HRESULT VideoSinkPin::Receive(IMediaSample* ptr_sample) {
