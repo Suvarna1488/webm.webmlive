@@ -25,11 +25,6 @@ class VideoSinkFilter;
 
 class VideoSinkPin : public CBaseInputPin {
  public:
-  enum {
-    kInvalidArg = E_INVALIDARG,
-    kSuccess = S_OK,
-    kFalse = S_FALSE,
-  };
   VideoSinkPin(TCHAR* ptr_object_name,
                VideoSinkFilter* ptr_filter,
                CCritSec* ptr_filter_lock,
