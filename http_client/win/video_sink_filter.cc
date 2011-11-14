@@ -8,6 +8,7 @@
 
 #include "http_client/win/video_sink_filter.h"
 
+#include <dvdmedia.h>
 #include <vfwmsgs.h>
 
 #include "glog/logging.h"
@@ -45,10 +46,10 @@ VideoSinkPin::~VideoSinkPin() {
 HRESULT VideoSinkPin::GetMediaType(int32 type_index,
                                    CMediaType* ptr_media_type) {
   // TODO: add libyuv and support types other than I420
-  if (type_index > 0) {
+  if (type_index != 0) {
     return VFW_S_NO_MORE_ITEMS;
   }
-  VIDEOINFOHEADER* ptr_video_info =
+  VIDEOINFOHEADER* const ptr_video_info =
       reinterpret_cast<VIDEOINFOHEADER*>(
           ptr_media_type->AllocFormatBuffer(sizeof(VIDEOINFOHEADER)));
   if (!ptr_video_info) {
@@ -61,27 +62,25 @@ HRESULT VideoSinkPin::GetMediaType(int32 type_index,
   // no target subrect.
   SetRectEmpty(&ptr_video_info->rcSource);
   SetRectEmpty(&ptr_video_info->rcTarget);
-
+  // Set values for all input types supported.
   ptr_media_type->SetType(&MEDIATYPE_Video);
   ptr_media_type->SetFormatType(&FORMAT_VideoInfo);
   ptr_media_type->SetTemporalCompression(FALSE);
-
   ptr_video_info->bmiHeader.biWidth = requested_config_.width;
   ptr_video_info->bmiHeader.biHeight = requested_config_.height;
+  // Set sub type and format data for I420.
   ptr_video_info->bmiHeader.biCompression = MAKEFOURCC('I','4','2','0');
   ptr_video_info->bmiHeader.biBitCount = kI420BitCount;
-  ptr_video_info->bmiHeader.biPlanes = 3;
-  ptr_video_info->bmiHeader.biSizeImage = DIBSIZE(ptr_video_info->bmiHeader);
-
+  ptr_video_info->bmiHeader.biPlanes = 1;
   ptr_media_type->SetSubtype(&MEDIASUBTYPE_I420);
+  // Set sample size.
+  ptr_video_info->bmiHeader.biSizeImage = DIBSIZE(ptr_video_info->bmiHeader);
   ptr_media_type->SetSampleSize(ptr_video_info->bmiHeader.biSizeImage);
-
   LOG(INFO) << "\n GetMediaType type_index=" << type_index << "\n"
             << "   width=" << requested_config_.width << "\n"
             << "   height=" << requested_config_.height << "\n"
             << std::hex << "   biCompression="
             << ptr_video_info->bmiHeader.biCompression;
-
   return S_OK;
 }
 
