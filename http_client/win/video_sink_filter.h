@@ -32,7 +32,7 @@ class VideoSinkPin : public CBaseInputPin {
                LPCWSTR ptr_pin_name);
   virtual ~VideoSinkPin();
   // Stores preferred media type for |type_index| in |ptr_media_type|. Supports
-  // only a single type, I420. 
+  // only a single type, I420.
   // Return values:
   // |S_OK| - success, |type_index| in range and |ptr_media_type| written.
   // |VFW_S_NO_MORE_ITEMS| - |type_index| != 0.
