@@ -137,9 +137,18 @@ HRESULT VideoSinkPin::CheckMediaType(const CMediaType* ptr_media_type) {
 }
 
 HRESULT VideoSinkPin::Receive(IMediaSample* ptr_sample) {
+  CHECK_NOTNULL(m_pFilter);
+  CHECK_NOTNULL(ptr_sample);
+  //VideoSinkFilter* ptr_filter = reinterpret_cast <VideoSinkFilter*>(m_pFilter);
   return E_NOTIMPL;
 }
 
+// Locks always owned by caller, |VideoSinkFilter::SetConfig|.
+HRESULT VideoSinkPin::SetConfig(const VideoConfig& config) {
+  requested_config_ = config;
+  actual_config_ = WebmEncoderConfig::VideoCaptureConfig();
+  return S_OK;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // VideoSinkFilter

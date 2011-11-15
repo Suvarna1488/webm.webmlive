@@ -25,6 +25,7 @@ class VideoSinkFilter;
 
 class VideoSinkPin : public CBaseInputPin {
  public:
+  typedef WebmEncoderConfig::VideoCaptureConfig VideoConfig;
   VideoSinkPin(TCHAR* ptr_object_name,
                VideoSinkFilter* ptr_filter,
                CCritSec* ptr_filter_lock,
@@ -40,11 +41,14 @@ class VideoSinkPin : public CBaseInputPin {
   HRESULT GetMediaType(int32 type_index, CMediaType* ptr_media_type);
   HRESULT CheckMediaType(const CMediaType* ptr_media_type);
   STDMETHODIMP Receive(IMediaSample* ptr_sample);
-  HRESULT SetConfig(const WebmEncoderConfig::VideoCaptureConfig& config);
  private:
+  HRESULT SetConfig(const VideoConfig& config);
+  // Filter user's requested video config.
   WebmEncoderConfig::VideoCaptureConfig requested_config_;
+  // Actual video config (from source filter).
   WebmEncoderConfig::VideoCaptureConfig actual_config_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoSinkPin);
+  friend class VideoSinkFilter;
 };
 
 class VideoSinkFilter : public CBaseFilter {
