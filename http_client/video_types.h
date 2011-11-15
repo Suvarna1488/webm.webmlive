@@ -54,6 +54,23 @@ struct I420Frame {
   int32 height;
 };
 
+struct VideoFrame {
+  VideoFrame() {
+    timestamp = 0;
+  }
+  I420Frame i420_frame;
+  int64 timestamp;
+};
+
+class VideoFrameCallback {
+ enum {
+   kSuccess = 0,
+   kDropped = 1,
+ };
+ public:
+  virtual int OnVideoFrameReceived(VideoFrame* ptr_frame) = 0;
+};
+
 }  // namespace webmlive
 
 #endif  // HTTP_CLIENT_VIDEO_TYPES_H_
