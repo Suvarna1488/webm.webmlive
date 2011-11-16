@@ -165,19 +165,18 @@ VideoSinkFilter::VideoSinkFilter(TCHAR* ptr_filter_name,
                                  LPUNKNOWN ptr_iunknown,
                                  HRESULT* ptr_result)
     : CBaseFilter(ptr_filter_name, ptr_iunknown, &filter_lock_,
-                  CLSID_VideoSinkFilter),
-      ptr_sink_pin_(NULL) {
+                  CLSID_VideoSinkFilter) {
   *ptr_result = E_FAIL;
-  ptr_sink_pin_ = new VideoSinkPin(NAME("VideoSinkInputPin"), this,
-                                   &filter_lock_, ptr_result, L"VideoSink");
-  if (!ptr_sink_pin_ || FAILED(*ptr_result)) {
+  sink_pin_.reset(
+      new (std::nothrow) VideoSinkPin(NAME("VideoSinkInputPin"),  // NOLINT
+                                      this, &filter_lock_, ptr_result,
+                                      L"VideoSink"));
+  if (!sink_pin_ || FAILED(*ptr_result)) {
       *ptr_result = FAILED(*ptr_result) ? (*ptr_result) : E_OUTOFMEMORY;
   }
 }
 
 VideoSinkFilter::~VideoSinkFilter() {
-    delete ptr_sink_pin_;
-    ptr_sink_pin_ = NULL;
 }
 
 HRESULT VideoSinkFilter::SetConfig(const VideoConfig& config) {

@@ -69,7 +69,7 @@ class VideoSinkFilter : public CBaseFilter {
 
  private:
   CCritSec filter_lock_;
-  VideoSinkPin* ptr_sink_pin_;
+  boost::scoped_ptr<VideoSinkPin> sink_pin_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoSinkFilter);
   friend class VideoSinkPin;
 };
