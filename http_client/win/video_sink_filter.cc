@@ -13,6 +13,7 @@
 
 #include "glog/logging.h"
 #include "http_client/video_types.h"
+#include "http_client/win/webm_encoder_dshow.h"
 #include "http_client/win/webm_guids.h"
 
 // TODO(tomfinegan): webrtc uses baseclasses, but has worked around the need
@@ -173,9 +174,7 @@ VideoSinkFilter::VideoSinkFilter(TCHAR* ptr_filter_name,
                                  VideoFrameCallback* ptr_frame_callback,
                                  HRESULT* ptr_result)
     : CBaseFilter(ptr_filter_name, ptr_iunknown, &filter_lock_,
-                  CLSID_VideoSinkFilter),
-      frame_buffer_length_(0) {
-
+                  CLSID_VideoSinkFilter) {
   if (!ptr_frame_callback) {
     *ptr_result = E_INVALIDARG;
     return;
@@ -222,20 +221,33 @@ HRESULT VideoSinkFilter::OnFrameReceived(IMediaSample* ptr_sample) {
   if (!ptr_sample) {
     return E_POINTER;
   }
-  if (frame_buffer_length_ < ptr_sample->GetActualDataLength()) {
-    frame_buffer_length_ = ptr_sample->GetActualDataLength();
-    frame_buffer_.reset(new (std::nothrow) uint8[frame_buffer_length_]);
-    if (!frame_buffer_) {
-      return E_OUTOFMEMORY;
-    }
-  }
   BYTE* ptr_sample_buffer = NULL;
   HRESULT hr = ptr_sample->GetPointer(&ptr_sample_buffer);
   if (FAILED(hr) || !ptr_sample_buffer) {
     LOG(ERROR) << "OnFrameReceived called with empty sample.";
+    hr = (hr == S_OK) ? E_FAIL : hr;
     return hr;
   }
-  memcpy(&frame_buffer_[0], ptr_sample_buffer, frame_buffer_length_);
+  int64 start_time = 0, end_time = 0;
+  hr = ptr_sample->GetMediaTime(&start_time, &end_time);
+  if (FAILED(hr)) {
+    LOG(ERROR) << "OnFrameReceived cannot get media time(s).";
+    return hr;
+  }
+  const int32 width = sink_pin_->actual_config_.width;
+  const int32 height = sink_pin_->actual_config_.height;
+  int32 status = frame_.InitI420(width, height, start_time, ptr_sample_buffer,
+                                 ptr_sample->GetActualDataLength());
+  if (status) {
+    LOG(ERROR) << "OnFrameReceived frame init failed: " << status;
+    return E_FAIL;
+  }
+  LOG(INFO) << "OnFrameReceived received a frame:"
+            << " width=" << width
+            << " height=" << height
+            << " timestamp(seconds)=" << media_time_to_seconds(start_time)
+            << " timestamp=" << start_time
+            << " size=" << frame_.buffer_length();
   return S_OK;
 }
 

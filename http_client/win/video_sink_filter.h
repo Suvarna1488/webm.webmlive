@@ -83,8 +83,7 @@ class VideoSinkFilter : public CBaseFilter {
  private:
   HRESULT OnFrameReceived(IMediaSample* ptr_sample);
   CCritSec filter_lock_;
-  int32 frame_buffer_length_;
-  boost::scoped_array<uint8> frame_buffer_;
+  VideoFrame frame_;
   boost::scoped_ptr<VideoSinkPin> sink_pin_;
   VideoFrameCallback* ptr_frame_callback_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoSinkFilter);
