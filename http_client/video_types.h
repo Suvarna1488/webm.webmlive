@@ -24,11 +24,11 @@ enum VideoFormat {
   kNumVideoSubtypes = 5,
 };
 
-static const int kI420BitCount = 12;
-static const int kYV12BitCount = kI420BitCount;
-static const int kYUY2BitCount = 16;
-static const int kYUYVBitCount = kYUY2BitCount;
-static const int kV210BitCount = 32;
+static const int32 kI420BitCount = 12;
+static const int32 kYV12BitCount = kI420BitCount;
+static const int32 kYUY2BitCount = 16;
+static const int32 kYUYVBitCount = kYUY2BitCount;
+static const int32 kV210BitCount = 32;
 
 struct I420Frame {
   I420Frame() {
@@ -52,23 +52,6 @@ struct I420Frame {
 
   int32 width;
   int32 height;
-};
-
-struct VideoFrame {
-  VideoFrame() {
-    timestamp = 0;
-  }
-  I420Frame i420_frame;
-  int64 timestamp;
-};
-
-class VideoFrameCallback {
- enum {
-   kSuccess = 0,
-   kDropped = 1,
- };
- public:
-  virtual int OnVideoFrameReceived(VideoFrame* ptr_frame) = 0;
 };
 
 }  // namespace webmlive
