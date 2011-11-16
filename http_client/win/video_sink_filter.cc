@@ -143,15 +143,22 @@ HRESULT VideoSinkPin::Receive(IMediaSample* ptr_sample) {
   CAutoLock lock(&ptr_filter->filter_lock_);
   HRESULT hr = CBaseInputPin::Receive(ptr_sample);
   if (SUCCEEDED(hr)) {
-    // grab sample buffer
-    // store it in |VideoFrame|
-    // call VideoFrameCallback
+    hr = ptr_filter->OnFrameReceived(ptr_sample);
   }
-  return E_NOTIMPL;
+  return hr;
 }
 
-// Lock always owned by caller, |VideoSinkFilter::SetConfig|.
-HRESULT VideoSinkPin::SetConfig(const VideoConfig& config) {
+// Filter lock always owned by caller, |VideoSinkFilter::GetConfig|.
+HRESULT VideoSinkPin::config(VideoConfig* ptr_config) {
+  if (!ptr_config) {
+    return E_POINTER;
+  }
+  *ptr_config = actual_config_;
+  return S_OK;
+}
+
+// Filter lock always owned by caller, |VideoSinkFilter::SetConfig|.
+HRESULT VideoSinkPin::set_config(const VideoConfig& config) {
   // TODO(tomfinegan): Sanity check values in |config|.
   requested_config_ = config;
   actual_config_ = WebmEncoderConfig::VideoCaptureConfig();
@@ -163,25 +170,42 @@ HRESULT VideoSinkPin::SetConfig(const VideoConfig& config) {
 //
 VideoSinkFilter::VideoSinkFilter(TCHAR* ptr_filter_name,
                                  LPUNKNOWN ptr_iunknown,
+                                 VideoFrameCallback* ptr_frame_callback,
                                  HRESULT* ptr_result)
     : CBaseFilter(ptr_filter_name, ptr_iunknown, &filter_lock_,
-                  CLSID_VideoSinkFilter) {
-  *ptr_result = E_FAIL;
+                  CLSID_VideoSinkFilter),
+      frame_buffer_length_(0) {
+
+  if (!ptr_frame_callback) {
+    *ptr_result = E_INVALIDARG;
+    return;
+  }
+  ptr_frame_callback_ = ptr_frame_callback;
   sink_pin_.reset(
       new (std::nothrow) VideoSinkPin(NAME("VideoSinkInputPin"),  // NOLINT
                                       this, &filter_lock_, ptr_result,
                                       L"VideoSink"));
-  if (!sink_pin_ || FAILED(*ptr_result)) {
-      *ptr_result = FAILED(*ptr_result) ? (*ptr_result) : E_OUTOFMEMORY;
+  if (!sink_pin_) {
+    *ptr_result = E_OUTOFMEMORY;
+  } else {
+    *ptr_result = S_OK;
   }
 }
 
 VideoSinkFilter::~VideoSinkFilter() {
 }
 
-HRESULT VideoSinkFilter::SetConfig(const VideoConfig& config) {
+HRESULT VideoSinkFilter::config(VideoConfig* ptr_config) {
   CAutoLock lock(&filter_lock_);
-  return sink_pin_->SetConfig(config);
+  return sink_pin_->config(ptr_config);
+}
+
+HRESULT VideoSinkFilter::set_config(const VideoConfig& config) {
+  if (m_State != State_Stopped) {
+    return VFW_E_NOT_STOPPED;
+  }
+  CAutoLock lock(&filter_lock_);
+  return sink_pin_->set_config(config);
 }
 
 CBasePin* VideoSinkFilter::GetPin(int index) {
@@ -193,6 +217,26 @@ CBasePin* VideoSinkFilter::GetPin(int index) {
   return ptr_pin;
 }
 
-
+// Lock owned by |VideoSinkPin::Receive|.
+HRESULT VideoSinkFilter::OnFrameReceived(IMediaSample* ptr_sample) {
+  if (!ptr_sample) {
+    return E_POINTER;
+  }
+  if (frame_buffer_length_ < ptr_sample->GetActualDataLength()) {
+    frame_buffer_length_ = ptr_sample->GetActualDataLength();
+    frame_buffer_.reset(new (std::nothrow) uint8[frame_buffer_length_]);
+    if (!frame_buffer_) {
+      return E_OUTOFMEMORY;
+    }
+  }
+  BYTE* ptr_sample_buffer = NULL;
+  HRESULT hr = ptr_sample->GetPointer(&ptr_sample_buffer);
+  if (FAILED(hr) || !ptr_sample_buffer) {
+    LOG(ERROR) << "OnFrameReceived called with empty sample.";
+    return hr;
+  }
+  memcpy(&frame_buffer_[0], ptr_sample_buffer, frame_buffer_length_);
+  return S_OK;
+}
 
 }  // namespace webmlive

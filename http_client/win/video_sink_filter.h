@@ -14,9 +14,12 @@
 #define HTTP_CLIENT_WIN_VIDEO_SINK_FILTER_H_
 
 #include "baseclasses/streams.h"
+#include "boost/scoped_array.hpp"
 #include "boost/scoped_ptr.hpp"
 #include "http_client/basictypes.h"
 #include "http_client/http_client_base.h"
+#include "http_client/video_encoder.h"
+#include "http_client/video_types.h"
 #include "http_client/webm_encoder.h"
 
 namespace webmlive {
@@ -33,6 +36,9 @@ class VideoSinkPin : public CBaseInputPin {
                HRESULT* ptr_result,
                LPCWSTR ptr_pin_name);
   virtual ~VideoSinkPin();
+  //
+  // CBaseInputPin methods
+  //
   // Stores preferred media type for |type_index| in |ptr_media_type|. Supports
   // only a single type, I420.
   // Return values:
@@ -41,14 +47,19 @@ class VideoSinkPin : public CBaseInputPin {
   // |E_OUTOFMEMORY| - could not allocate format buffer.
   HRESULT GetMediaType(int32 type_index, CMediaType* ptr_media_type);
   HRESULT CheckMediaType(const CMediaType* ptr_media_type);
+  // IPin method(s).
   STDMETHODIMP Receive(IMediaSample* ptr_sample);
-
+  
  private:
-  HRESULT SetConfig(const VideoConfig& config);
+  // Writes |actual_config_| values to |ptr_config| and returns |S_OK|.
+  HRESULT config(VideoConfig* ptr_config);
+  // Resets |actual_config_| and copies |config| values to |requested_config_|,
+  // then returns |S_OK|.
+  HRESULT set_config(const VideoConfig& config);
   // Filter user's requested video config.
-  WebmEncoderConfig::VideoCaptureConfig requested_config_;
+  VideoConfig requested_config_;
   // Actual video config (from source filter).
-  WebmEncoderConfig::VideoCaptureConfig actual_config_;
+  VideoConfig actual_config_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoSinkPin);
   friend class VideoSinkFilter;
 };
@@ -58,9 +69,11 @@ class VideoSinkFilter : public CBaseFilter {
   typedef WebmEncoderConfig::VideoCaptureConfig VideoConfig;
   VideoSinkFilter(TCHAR* ptr_filter_name,
                   LPUNKNOWN ptr_iunknown,
+                  VideoFrameCallback* ptr_frame_callback,
                   HRESULT* ptr_result);
   virtual ~VideoSinkFilter();
-  HRESULT SetConfig(const VideoConfig& config);
+  HRESULT config(VideoConfig* ptr_config);
+  HRESULT set_config(const VideoConfig& config);
   // IUnknown
   DECLARE_IUNKNOWN;
   // CBaseFilter methods
@@ -68,8 +81,12 @@ class VideoSinkFilter : public CBaseFilter {
   CBasePin* GetPin(int index);
 
  private:
+  HRESULT OnFrameReceived(IMediaSample* ptr_sample);
   CCritSec filter_lock_;
+  int32 frame_buffer_length_;
+  boost::scoped_array<uint8> frame_buffer_;
   boost::scoped_ptr<VideoSinkPin> sink_pin_;
+  VideoFrameCallback* ptr_frame_callback_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoSinkFilter);
   friend class VideoSinkPin;
 };
