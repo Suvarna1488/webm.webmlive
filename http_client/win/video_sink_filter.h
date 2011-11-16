@@ -14,6 +14,7 @@
 #define HTTP_CLIENT_WIN_VIDEO_SINK_FILTER_H_
 
 #include "baseclasses/streams.h"
+#include "boost/scoped_ptr.hpp"
 #include "http_client/basictypes.h"
 #include "http_client/http_client_base.h"
 #include "http_client/webm_encoder.h"
@@ -41,6 +42,7 @@ class VideoSinkPin : public CBaseInputPin {
   HRESULT GetMediaType(int32 type_index, CMediaType* ptr_media_type);
   HRESULT CheckMediaType(const CMediaType* ptr_media_type);
   STDMETHODIMP Receive(IMediaSample* ptr_sample);
+
  private:
   HRESULT SetConfig(const VideoConfig& config);
   // Filter user's requested video config.
@@ -53,21 +55,23 @@ class VideoSinkPin : public CBaseInputPin {
 
 class VideoSinkFilter : public CBaseFilter {
  public:
-  enum {
-    kInvalidArg = E_INVALIDARG,
-    kSuccess = S_OK,
-    kFalse = S_FALSE,
-  };
+  typedef WebmEncoderConfig::VideoCaptureConfig VideoConfig;
   VideoSinkFilter(TCHAR* ptr_filter_name,
                   LPUNKNOWN ptr_iunknown,
                   HRESULT* ptr_result);
   virtual ~VideoSinkFilter();
+  HRESULT SetConfig(const VideoConfig& config);
+  // IUnknown
+  DECLARE_IUNKNOWN;
+  // CBaseFilter methods
+  int GetPinCount() { return 1; }
+  CBasePin* GetPin(int index);
+
  private:
-  // The filter lock. Must be acquired after the receive lock.
   CCritSec filter_lock_;
-  CCritSec receive_lock_;
   VideoSinkPin* ptr_sink_pin_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoSinkFilter);
+  friend class VideoSinkPin;
 };
 
 }  // namespace webmlive

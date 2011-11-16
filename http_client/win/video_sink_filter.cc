@@ -139,12 +139,20 @@ HRESULT VideoSinkPin::CheckMediaType(const CMediaType* ptr_media_type) {
 HRESULT VideoSinkPin::Receive(IMediaSample* ptr_sample) {
   CHECK_NOTNULL(m_pFilter);
   CHECK_NOTNULL(ptr_sample);
-  //VideoSinkFilter* ptr_filter = reinterpret_cast <VideoSinkFilter*>(m_pFilter);
+  VideoSinkFilter* ptr_filter = reinterpret_cast <VideoSinkFilter*>(m_pFilter);
+  CAutoLock lock(&ptr_filter->filter_lock_);
+  HRESULT hr = CBaseInputPin::Receive(ptr_sample);
+  if (SUCCEEDED(hr)) {
+    // grab sample buffer
+    // store it in |VideoFrame|
+    // call VideoFrameCallback
+  }
   return E_NOTIMPL;
 }
 
-// Locks always owned by caller, |VideoSinkFilter::SetConfig|.
+// Lock always owned by caller, |VideoSinkFilter::SetConfig|.
 HRESULT VideoSinkPin::SetConfig(const VideoConfig& config) {
+  // TODO(tomfinegan): Sanity check values in |config|.
   requested_config_ = config;
   actual_config_ = WebmEncoderConfig::VideoCaptureConfig();
   return S_OK;
@@ -171,5 +179,21 @@ VideoSinkFilter::~VideoSinkFilter() {
     delete ptr_sink_pin_;
     ptr_sink_pin_ = NULL;
 }
+
+HRESULT VideoSinkFilter::SetConfig(const VideoConfig& config) {
+  CAutoLock lock(&filter_lock_);
+  return sink_pin_->SetConfig(config);
+}
+
+CBasePin* VideoSinkFilter::GetPin(int index) {
+  CBasePin* ptr_pin = NULL;
+  CAutoLock lock(&filter_lock_);
+  if (index == 0) {
+    ptr_pin = sink_pin_.get();
+  }
+  return ptr_pin;
+}
+
+
 
 }  // namespace webmlive
