@@ -8,6 +8,8 @@
 
 #include "http_client/video_encoder.h"
 
+#include <new>
+
 namespace webmlive {
 
 VideoFrame::VideoFrame()
