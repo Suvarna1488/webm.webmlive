@@ -13,7 +13,15 @@
 #ifndef HTTP_CLIENT_WIN_VIDEO_SINK_FILTER_H_
 #define HTTP_CLIENT_WIN_VIDEO_SINK_FILTER_H_
 
+#pragma warning(push)
+#pragma warning(disable:4005)
+// Disable C4005 via pragma
+// Pragma required because streams.h includes intsafe.h, which defines
+// INTSAFE_E_ARITHMETIC_OVERFLOW without an ifndef check, resulting in a 
+// warning that breaks our build when compiling with warnings-as-errors flag
+// enabled.
 #include "baseclasses/streams.h"
+#pragma warning(pop)
 #include "boost/scoped_array.hpp"
 #include "boost/scoped_ptr.hpp"
 #include "http_client/basictypes.h"
@@ -67,9 +75,9 @@ class VideoSinkPin : public CBaseInputPin {
 class VideoSinkFilter : public CBaseFilter {
  public:
   typedef WebmEncoderConfig::VideoCaptureConfig VideoConfig;
-  VideoSinkFilter(TCHAR* ptr_filter_name,
+  VideoSinkFilter(const TCHAR* ptr_filter_name,
                   LPUNKNOWN ptr_iunknown,
-                  VideoFrameCallback* ptr_frame_callback,
+                  VideoFrameCallbackInterface* ptr_frame_callback,
                   HRESULT* ptr_result);
   virtual ~VideoSinkFilter();
   HRESULT config(VideoConfig* ptr_config);
@@ -85,7 +93,7 @@ class VideoSinkFilter : public CBaseFilter {
   CCritSec filter_lock_;
   VideoFrame frame_;
   boost::scoped_ptr<VideoSinkPin> sink_pin_;
-  VideoFrameCallback* ptr_frame_callback_;
+  VideoFrameCallbackInterface* ptr_frame_callback_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoSinkFilter);
   friend class VideoSinkPin;
 };

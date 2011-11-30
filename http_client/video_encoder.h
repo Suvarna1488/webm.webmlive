@@ -45,12 +45,14 @@ class VideoFrame {
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoFrame);
 };
 
-class VideoFrameCallback {
- enum {
+class VideoFrameCallbackInterface {
+ public:
+  enum {
+   kInvalidArg = -2,
+   kNullFrame = -1,
    kSuccess = 0,
    kDropped = 1,
- };
- public:
+  };
   virtual int32 OnVideoFrameReceived(VideoFrame* ptr_frame) = 0;
 };
 

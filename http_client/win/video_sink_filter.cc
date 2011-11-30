@@ -169,10 +169,11 @@ HRESULT VideoSinkPin::set_config(const VideoConfig& config) {
 ///////////////////////////////////////////////////////////////////////////////
 // VideoSinkFilter
 //
-VideoSinkFilter::VideoSinkFilter(TCHAR* ptr_filter_name,
-                                 LPUNKNOWN ptr_iunknown,
-                                 VideoFrameCallback* ptr_frame_callback,
-                                 HRESULT* ptr_result)
+VideoSinkFilter::VideoSinkFilter(
+    const TCHAR* ptr_filter_name,
+    LPUNKNOWN ptr_iunknown,
+    VideoFrameCallbackInterface* ptr_frame_callback,
+    HRESULT* ptr_result)
     : CBaseFilter(ptr_filter_name, ptr_iunknown, &filter_lock_,
                   CLSID_VideoSinkFilter) {
   if (!ptr_frame_callback) {
@@ -228,8 +229,10 @@ HRESULT VideoSinkFilter::OnFrameReceived(IMediaSample* ptr_sample) {
     hr = (hr == S_OK) ? E_FAIL : hr;
     return hr;
   }
-  int64 start_time = 0, end_time = 0;
-  hr = ptr_sample->GetMediaTime(&start_time, &end_time);
+  //int64 start_time = 0, end_time = 0;
+  REFERENCE_TIME start_time = 0, end_time = 0;
+  //hr = ptr_sample->GetMediaTime(&start_time, &end_time);
+  hr = ptr_sample->GetTime(&start_time, &end_time);
   if (FAILED(hr)) {
     LOG(ERROR) << "OnFrameReceived cannot get media time(s).";
     return hr;
@@ -245,9 +248,16 @@ HRESULT VideoSinkFilter::OnFrameReceived(IMediaSample* ptr_sample) {
   LOG(INFO) << "OnFrameReceived received a frame:"
             << " width=" << width
             << " height=" << height
-            << " timestamp(seconds)=" << media_time_to_seconds(start_time)
+            << " START timestamp(seconds)=" << media_time_to_seconds(start_time)
             << " timestamp=" << start_time
+            << " END timestamp(seconds)="  << media_time_to_seconds(end_time)
+            << " timestamp=" << end_time
             << " size=" << frame_.buffer_length();
+
+  int frame_status = ptr_frame_callback_->OnVideoFrameReceived(NULL);
+  if (frame_status) {
+    LOG(ERROR) << "OnVideoFrameReceived failed, status=" << frame_status;
+  }
   return S_OK;
 }
 
