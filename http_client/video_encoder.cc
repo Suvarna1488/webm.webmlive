@@ -39,6 +39,9 @@ int32 VideoFrame::InitI420(int32 width, int32 height, int64 timestamp,
 }
 
 void VideoFrame::Swap(VideoFrame* ptr_frame) {
+  CHECK_NOTNULL(buffer_.get());
+  CHECK_NOTNULL(ptr_frame->buffer_.get());
+  CHECK_EQ(buffer_length_, ptr_frame->buffer_length_);
   int32 temp = width_;
   width_ = ptr_frame->width_;
   ptr_frame->width_ = temp;
