@@ -25,9 +25,9 @@ class VideoFrame {
   };
   VideoFrame();
   ~VideoFrame();
-  // Allocates storage for |ptr_data|, sets internal fields to values in 
+  // Allocates storage for |ptr_data|, sets internal fields to values in
   // callers args, and returns |kSuccess|.
-  int32 InitI420(int32 width, int32 height, int64 timestamp, uint8* ptr_data, 
+  int32 InitI420(int32 width, int32 height, int64 timestamp, uint8* ptr_data,
                  int32 data_length);
   // Swaps |VideoFrame| data.
   void Swap(VideoFrame* ptr_frame);
@@ -54,6 +54,42 @@ class VideoFrameCallbackInterface {
    kDropped = 1,
   };
   virtual int32 OnVideoFrameReceived(VideoFrame* ptr_frame) = 0;
+};
+
+struct VpxConfig {
+  // Time between keyframes, in seconds.
+  double keyframe_interval;
+  // Video bitrate, in kilobits.
+  int bitrate;
+  // Video frame rate decimation factor.
+  int decimate;
+  // Minimum quantizer value.
+  int min_quantizer;
+  // Maxium quantizer value.
+  int max_quantizer;
+  // Encoder complexity.
+  int speed;
+  // Threshold at which a macroblock is considered static.
+  int static_threshold;
+  // Encoder thead count.
+  int thread_count;
+  // Number of token partitions.
+  int token_partitions;
+  // Percentage to undershoot the requested datarate.
+  int undershoot;
+};
+
+class VpxEncoder {
+ public:
+  enum {
+    kSuccess = 0,
+  };
+  VpxEncoder();
+  ~VpxEncoder();
+  int32 Init(const VpxConfig* ptr_config);
+  int32 EncodeFrame(const VideoFrame* ptr_frame);
+ private:
+  WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VpxEncoder);
 };
 
 }  // namespace webmlive
