@@ -25,12 +25,12 @@ WebmEncoder::~WebmEncoder() {
 
 // Creates the encoder object and call its |Init| method.
 int WebmEncoder::Init(const WebmEncoderConfig& config) {
-  ptr_av_source_.reset(new (std::nothrow) WebmEncoderImpl());  // NOLINT
-  if (!ptr_av_source_) {
+  ptr_media_source_.reset(new (std::nothrow) MediaSourceImpl());  // NOLINT
+  if (!ptr_media_source_) {
     LOG(ERROR) << "cannot construct encoder instance!";
     return kInitFailed;
   }
-  return ptr_av_source_->Init(this, config);
+  return ptr_media_source_->Init(this, config);
 }
 
 // Returns result of encoder object's |Run| method.
