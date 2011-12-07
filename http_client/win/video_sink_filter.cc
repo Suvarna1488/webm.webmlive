@@ -253,8 +253,7 @@ HRESULT VideoSinkFilter::OnFrameReceived(IMediaSample* ptr_sample) {
             << " END timestamp(seconds)="  << media_time_to_seconds(end_time)
             << " timestamp=" << end_time
             << " size=" << frame_.buffer_length();
-
-  int frame_status = ptr_frame_callback_->OnVideoFrameReceived(NULL);
+  int frame_status = ptr_frame_callback_->OnVideoFrameReceived(&frame_);
   if (frame_status) {
     LOG(ERROR) << "OnVideoFrameReceived failed, status=" << frame_status;
   }
