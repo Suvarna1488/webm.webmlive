@@ -104,14 +104,16 @@ int VideoFrameQueue::Push(VideoFrame* ptr_frame) {
   }
   boost::mutex::scoped_lock lock(mutex_);
   if (frame_pool_.empty()) {
-    LOG(INFO) << "VideoFrameQueue full.";
+    VLOG(4) << "VideoFrameQueue full.";
     return kFull;
   }
+  // Copy user data into front frame from |frame_pool_|.
   VideoFrame* ptr_pool_frame = frame_pool_.front();
   if (CopyFrame(ptr_frame, ptr_pool_frame)) {
     LOG(ERROR) << "VideoFrame CopyFrame failed!";
     return kNoMemory;
   }
+  // Move the now active frame from the pool into the active queue.
   frame_pool_.pop();
   active_frames_.push(ptr_pool_frame);
   return kSuccess;
@@ -126,14 +128,18 @@ int VideoFrameQueue::Pop(VideoFrame* ptr_frame) {
   }
   boost::mutex::scoped_lock lock(mutex_);
   if (active_frames_.empty()) {
-    LOG(INFO) << "VideoFrameQueue empty.";
+    VLOG(4) << "VideoFrameQueue empty.";
     return kEmpty;
   }
+  // Copy active frame data to user frame.
   VideoFrame* ptr_active_frame = active_frames_.front();
   if (CopyFrame(ptr_active_frame, ptr_frame)) {
     LOG(ERROR) << "CopyFrame failed!";
     return kNoMemory;
   }
+  // Put the now inactive frame back in the pool.
+  active_frames_.pop();
+  frame_pool_.push(ptr_active_frame);
   return kSuccess;
 }
 
