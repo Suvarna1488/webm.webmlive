@@ -254,7 +254,7 @@ HRESULT VideoSinkFilter::OnFrameReceived(IMediaSample* ptr_sample) {
             << " timestamp=" << end_time
             << " size=" << frame_.buffer_length();
   int frame_status = ptr_frame_callback_->OnVideoFrameReceived(&frame_);
-  if (frame_status) {
+  if (frame_status && frame_status != WebmEncoder::kVideoFrameDropped) {
     LOG(ERROR) << "OnVideoFrameReceived failed, status=" << frame_status;
   }
   return S_OK;
