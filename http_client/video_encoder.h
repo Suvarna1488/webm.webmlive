@@ -34,7 +34,8 @@ class VideoFrame {
   // caller's args, and returns |kSuccess|.
   int32 InitI420(int32 width, int32 height, int64 timestamp, uint8* ptr_data,
                  int32 data_length);
-  // Swaps |VideoFrame| data.
+  // Swaps |VideoFrame| member data with |ptr_frame|'s. The |VideoFrame|s
+  // must be of identical size, and each must have a non-NULL buffer.
   void Swap(VideoFrame* ptr_frame);
   int32 width() const { return width_; }
   int32 height() const { return height_; }
@@ -50,8 +51,8 @@ class VideoFrame {
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoFrame);
 };
 
-// Queue object used to pass video frames between threads. Uses two 
-// |std::queue<VideoFrame*>|s and moves |VideoFrame| pointers between them to 
+// Queue object used to pass video frames between threads. Uses two
+// |std::queue<VideoFrame*>|s and moves |VideoFrame| pointers between them to
 // provide a means by which the capture thread can pass samples to the video
 // encoder.
 class VideoFrameQueue {
@@ -85,8 +86,8 @@ class VideoFrameQueue {
   // Drops all queued |VideoFrame|s by moving them all from |active_frames_| to
   // |frame_pool_|.
   void DropFrames();
-  // Copies |ptr_source| to |ptr_target| using |VideoFrame::Init| or 
-  // |VideoFrame::Swap| based on presence of non-NULL buffer pointer in 
+  // Copies |ptr_source| to |ptr_target| using |VideoFrame::Init| or
+  // |VideoFrame::Swap| based on presence of non-NULL buffer pointer in
   // |ptr_target|.
   static int CopyFrame(VideoFrame* ptr_source, VideoFrame* ptr_target);
  private:
