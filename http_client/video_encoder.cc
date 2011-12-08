@@ -70,12 +70,14 @@ VideoFrameQueue::VideoFrameQueue() {
 }
 
 VideoFrameQueue::~VideoFrameQueue() {
-  DropFrames();
-  DCHECK_EQ(frame_pool_.size(), static_cast<size_t>(kMaxDepth));
-  for (int i = 0; i < kMaxDepth && !frame_pool_.empty(); ++i) {
-    VideoFrame* ptr_frame = frame_pool_.front();
+  boost::mutex::scoped_lock lock(mutex_);
+  while (!frame_pool_.empty()) {
+    delete frame_pool_.front();
     frame_pool_.pop();
-    delete ptr_frame;
+  }
+  while (!active_frames_.empty()) {
+    delete active_frames_.front();
+    active_frames_.pop();
   }
 }
 
