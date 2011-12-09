@@ -94,9 +94,6 @@ class VideoFrameCallbackInterface;
 class MediaSourceImpl {
  public:
   enum {
-    // Internal status codes for the DirectShow encoder.
-    // Null |VideoFrameCallbackInterface| pointer passed to |Init|.
-    kNullCallback = -223,
     // Error creating the video sink filter.
     kVideoSinkCreateError = -222,
     // Error configuring Vorbis encoder.
@@ -137,17 +134,19 @@ class MediaSourceImpl {
     kCannotCreateWebmMuxer = -201,
     // Unable to create graph interfaces.
     kCannotCreateGraph = -200,
+    kInvalidArg = -1,
     kSuccess = 0,
     // Graph completion event received.
     kGraphCompleted = 1,
   };
   MediaSourceImpl();
   ~MediaSourceImpl();
-  // TODO(tomfinegan): fix the misleading comment.
-  // Creates WebM encoder graph. Returns |kSuccess| upon success, or a
-  // |WebmEncoder| status code upon failure.
+  // Creates A/V capture graph. Returns |kSuccess| upon success, or a
+  // |WebmEncoder| status code upon failure. Updates |VideoCaptureConfig|
+  // dimensions when actual dimensions differ from those requested.
+  // TODO(tomfinegan): update |AudioCaptureConfig| with actual settings.  
   int Init(VideoFrameCallbackInterface* ptr_video_callback,
-           const WebmEncoderConfig& config);
+           WebmEncoderConfig* config);
   // Runs filter graph. Returns |kSuccess| upon success, or a |WebmEncoder|
   // status code upon failure.
   int Run();

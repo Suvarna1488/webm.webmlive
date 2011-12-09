@@ -130,6 +130,7 @@ class WebmEncoder : public VideoFrameCallbackInterface {
     kInitFailed = -101,
     // Cannot run the encoder.
     kRunFailed = -100,
+    kInvaligArg = -1,
     kSuccess = 0,
   };
   WebmEncoder();
@@ -171,6 +172,8 @@ class WebmEncoder : public VideoFrameCallbackInterface {
   VideoFrameQueue video_queue_;
   // Most recent frame from |video_queue_|.
   VideoFrame video_frame_;
+
+  WebmEncoderConfig config_;
 
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(WebmEncoder);
 };

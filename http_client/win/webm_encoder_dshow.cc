@@ -112,14 +112,14 @@ MediaSourceImpl::~MediaSourceImpl() {
 //                                   webm muxer -> file writer
 // audio source -> vorbis encoder ->
 int MediaSourceImpl::Init(VideoFrameCallbackInterface* ptr_video_callback,
-                          const WebmEncoderConfig& config) {
+                          WebmEncoderConfig* ptr_config) {
 
-  if (!ptr_video_callback) {
-    LOG(ERROR) << "Null VideoFrameCallbackInterface.";
-    return kNullCallback;
+  if (!ptr_video_callback || !ptr_config) {
+    LOG(ERROR) << "Null VideoFrameCallbackInterface or WebmEncoderConfig.";
+    return kInvalidArg;
   }
   ptr_video_callback_ = ptr_video_callback;
-  config_ = config;
+  config_ = *ptr_config;
   const HRESULT hr = CoInitialize(NULL);
   if (FAILED(hr)) {
     LOG(ERROR) << "CoInitialize failed: " << HRLOG(hr);
@@ -130,7 +130,7 @@ int MediaSourceImpl::Init(VideoFrameCallbackInterface* ptr_video_callback,
     LOG(ERROR) << "CreateGraphInterfaces failed: " << status;
     return WebmEncoder::kInitFailed;
   }
-  if (!config.video_device_name.empty()) {
+  if (!config_.video_device_name.empty()) {
     video_device_name_ = string_to_wstring(config_.video_device_name);
   }
   status = CreateVideoSource();
@@ -153,6 +153,8 @@ int MediaSourceImpl::Init(VideoFrameCallbackInterface* ptr_video_callback,
     LOG(ERROR) << "ConnectVideoSourceToVideoSink failed: " << status;
     return WebmEncoder::kEncodeMonitorError;
   }
+  // Update user video configuration with actual values.
+  ptr_config->video_config = config_.video_config;
 #if 0
   status = CreateVpxEncoder();
   if (status) {
@@ -389,7 +391,7 @@ int MediaSourceImpl::ConnectVideoSourceToVideoSink() {
   }
   if (status == kSuccess && hr == S_OK) {
     AM_MEDIA_TYPE media_type = {0};
-    // log the actual width/height/frame rate.
+    // Store the actual width/height/frame rate.
     hr = video_source_pin->ConnectionMediaType(&media_type);
     if (hr == S_OK) {
       VideoMediaType video_format;
@@ -397,6 +399,9 @@ int MediaSourceImpl::ConnectVideoSourceToVideoSink() {
         LOG(INFO) << "actual capture width=" << video_format.width()
                   << " height=" << video_format.height()
                   << " frame_rate=" << video_format.frame_rate();
+        config_.video_config.width = video_format.width();
+        config_.video_config.height = video_format.height();
+        config_.video_config.frame_rate = video_format.frame_rate();
       }
     }
     MediaType::FreeMediaTypeData(&media_type);
