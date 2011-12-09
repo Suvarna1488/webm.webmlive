@@ -70,27 +70,27 @@ class VideoFrameQueue {
     kSuccess = 0,
   };
   // Number of |VideoFrame|'s to allocate and push into the |frame_pool_|.
-  static const int kMaxDepth = 4;
+  static const int32 kMaxDepth = 4;
   VideoFrameQueue();
   ~VideoFrameQueue();
   // Allocates |kMaxDepth| |VideoFrame|s, pushes them into |frame_pool_|, and
   // returns |kSuccess|.
-  int Init();
+  int32 Init();
   // Grabs a |VideoFrame| from |frame_pool_|, copies the data from |ptr_frame|,
   // and pushes it into |active_frames_|. Returns |kSuccess| if able to store
   // the frame. Returns |kFull| when |frame_pool_| is empty.
-  int Push(VideoFrame* ptr_frame);
+  int32 Push(VideoFrame* ptr_frame);
   // Grabs a |VideoFrame| from |active_frames_| and copies it to |ptr_frame|.
   // Returns |kSuccess| when able to copy the frame. Returns |kEmpty| when
   // |active_frames_| contains no |VideoFrame|s.
-  int Pop(VideoFrame* ptr_frame);
+  int32 Pop(VideoFrame* ptr_frame);
   // Drops all queued |VideoFrame|s by moving them all from |active_frames_| to
   // |frame_pool_|.
   void DropFrames();
   // Copies |ptr_source| to |ptr_target| using |VideoFrame::Init| or
   // |VideoFrame::Swap| based on presence of non-NULL buffer pointer in
   // |ptr_target|.
-  static int CopyFrame(VideoFrame* ptr_source, VideoFrame* ptr_target);
+  static int32 CopyFrame(VideoFrame* ptr_source, VideoFrame* ptr_target);
  private:
   boost::mutex mutex_;
   std::queue<VideoFrame*> frame_pool_;
@@ -101,8 +101,7 @@ class VideoFrameQueue {
 class VideoFrameCallbackInterface {
  public:
   enum {
-   kInvalidArg = -2,
-   kNullFrame = -1,
+   kInvalidArg = -1,
    kSuccess = 0,
    kDropped = 1,
   };
@@ -136,17 +135,17 @@ struct VpxConfig {
 // libvpx implementation details are kept hidden because use of the includes
 // produces C4505 warnings with MSVC at warning level 4.
 class VpxEncoder;
+struct WebmEncoderConfig;
 
 class VideoEncoder {
  public:
   enum {
-    kInvalidArg = -2,
-    kNullFrame = -1,
+    kInvalidArg = -1,
     kSuccess = 0,
   };
   VideoEncoder();
   ~VideoEncoder();
-  int32 Init(const VpxConfig* ptr_config);
+  int32 Init(const WebmEncoderConfig* ptr_config);
   int32 EncodeFrame(const VideoFrame* ptr_frame);
  private:
   boost::scoped_ptr<VpxEncoder> ptr_vpx_encoder_;
