@@ -188,4 +188,18 @@ int32 VideoFrameQueue::CopyFrame(VideoFrame* ptr_source,
 // VideoEncoder
 //
 
+VideoEncoder::VideoEncoder() {
+}
+
+VideoEncoder::~VideoEncoder() {
+}
+
+int32 VideoEncoder::Init(const WebmEncoderConfig* ptr_config) {
+  ptr_vpx_encoder_.reset(new (std::nothrow) VpxEncoder());
+  if (!ptr_vpx_encoder_) {
+    return kNoMemory;
+  }
+  return ptr_vpx_encoder_->Init(ptr_config);
+}
+
 }  // namespace webmlive

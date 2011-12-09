@@ -140,6 +140,8 @@ struct WebmEncoderConfig;
 class VideoEncoder {
  public:
   enum {
+    kCodecError = -100,
+    kNoMemory = -2,
     kInvalidArg = -1,
     kSuccess = 0,
   };

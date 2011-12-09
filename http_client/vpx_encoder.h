@@ -11,20 +11,27 @@
 
 #include "http_client/basictypes.h"
 #include "http_client/http_client_base.h"
+#include "http_client/video_encoder.h"
 #include "libvpx/vpx/vpx_encoder.h"
 #include "libvpx/vpx/vp8cx.h"
 
 namespace webmlive {
 class VideoFrame;
-class VpxConfig;
+struct WebmEncoderConfig;
 
 class VpxEncoder {
  public:
+  enum {
+    kNoMemory = -2,
+    kInvalidArg = -1,
+    kSuccess = 0,
+  };
   VpxEncoder();
   ~VpxEncoder();
-  int Init(VpxConfig* ptr_config);
-  int EncodeFrame(VideoFrame* ptr_frame);
+  int Init(const WebmEncoderConfig* ptr_config);
+  int EncodeFrame(const VideoFrame* ptr_frame);
  private:
+  vpx_codec_ctx_t vp8_context_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VpxEncoder);
 };
 

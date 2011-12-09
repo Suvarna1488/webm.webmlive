@@ -12,16 +12,48 @@
 // vp8.h and vp8cx.h (included by vpx_encoder.h).
 #pragma warning(disable:4505)
 #endif
-
 #include "http_client/vpx_encoder.h"
+
+#include "glog/logging.h"
+#include "http_client/webm_encoder.h"
 
 namespace webmlive {
 
 VpxEncoder::VpxEncoder() {
+  memset(&vp8_context_, 0, sizeof(vp8_context_));
 }
 
 VpxEncoder::~VpxEncoder() {
 }
+
+int VpxEncoder::Init(const WebmEncoderConfig* ptr_user_config) {
+  if (!ptr_user_config) {
+    LOG(ERROR) << "VpxEncoder cannot Init with NULL VpxConfig!";
+    return kInvalidArg;
+  }
+  vpx_codec_enc_cfg_t vp8_config = {0};
+  vpx_codec_err_t status = vpx_codec_enc_config_default(vpx_codec_vp8_cx(),
+                                                        &vp8_config, 0);
+  if (status) {
+    LOG(ERROR) << "vpx_codec_enc_config_default failed: "
+               << vpx_codec_err_to_string(status);
+    return VideoEncoder::kCodecError;
+  }
+  vp8_config.g_h = ptr_user_config->video_config.height;
+  vp8_config.g_w = ptr_user_config->video_config.width;
+  const VpxConfig& user_vpx_config = ptr_user_config->vpx_config;
+  vp8_config.g_threads = user_vpx_config.thread_count;
+  vp8_config.rc_target_bitrate = user_vpx_config.bitrate;
+  vp8_config.rc_min_quantizer = user_vpx_config.min_quantizer;
+  vp8_config.rc_max_quantizer = user_vpx_config.max_quantizer;
+
+
+
+
+  return kSuccess;
+}
+
+
 
 #if 0
     FILE                *infile, *outfile;
