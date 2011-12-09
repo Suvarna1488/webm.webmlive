@@ -39,17 +39,65 @@ int VpxEncoder::Init(const WebmEncoderConfig* ptr_user_config) {
                << vpx_codec_err_to_string(status);
     return VideoEncoder::kCodecError;
   }
+  // Copy configuration into VP8 codec configuration struct...
   vp8_config.g_h = ptr_user_config->video_config.height;
   vp8_config.g_w = ptr_user_config->video_config.width;
+  vp8_config.g_pass = VPX_RC_ONE_PASS;
+  // All times are in milliseconds.
+  // TODO(tomfinegan): Need a shared timebase constant.
+  vp8_config.g_timebase.num = 1;
+  vp8_config.g_timebase.den = 1000;
+  // TODO(tomfinegan): Need settings validation-- v1 was relying on the DShow
+  //                   filter to check settings.
   const VpxConfig& user_vpx_config = ptr_user_config->vpx_config;
-  vp8_config.g_threads = user_vpx_config.thread_count;
+  if (user_vpx_config.thread_count != kDefaultVpxThreadCount) {
+    vp8_config.g_threads = user_vpx_config.thread_count;
+  }
+  if (user_vpx_config.undershoot != kDefaultVpxUndershoot) {
+    vp8_config.rc_undershoot_pct = user_vpx_config.undershoot;
+  }
+  vp8_config.rc_end_usage = VPX_CBR;
   vp8_config.rc_target_bitrate = user_vpx_config.bitrate;
   vp8_config.rc_min_quantizer = user_vpx_config.min_quantizer;
   vp8_config.rc_max_quantizer = user_vpx_config.max_quantizer;
-
-
-
-
+  // Init the codec with our config struct.
+  status = vpx_codec_enc_init(&vp8_context_, vpx_codec_vp8_cx(),
+                              &vp8_config, 0);
+  if (status) {
+    LOG(ERROR) << "vpx_codec_enc_init failed: "
+               << vpx_codec_err_to_string(status);
+    return VideoEncoder::kCodecError;
+  }
+  // Pass the remaining configuration settings into libvpx.
+  if (user_vpx_config.speed != kDefaultVpxSpeed) {
+    status = vpx_codec_control(&vp8_context_, VP8E_SET_CPUUSED,
+                               user_vpx_config.speed);
+    if (status) {
+      LOG(ERROR) << "vpx_codec_control VP8E_SET_CPUUSED (speed) failed: "
+                 << vpx_codec_err_to_string(status);
+      return VideoEncoder::kCodecError;
+    }
+  }
+  if (user_vpx_config.static_threshold != kDefaultVpxStaticThreshold) {
+    status = vpx_codec_control(&vp8_context_, VP8E_SET_STATIC_THRESHOLD,
+                               user_vpx_config.static_threshold);
+    if (status) {
+      LOG(ERROR) << "vpx_codec_control VP8E_SET_STATIC_THRESHOLD failed: "
+                 << vpx_codec_err_to_string(status);
+      return VideoEncoder::kCodecError;
+    }
+  }
+  if (user_vpx_config.token_partitions != kDefaultVpxTokenPartitions) {
+    const vp8e_token_partitions token_partitions =
+        static_cast<vp8e_token_partitions>(user_vpx_config.token_partitions);
+    status = vpx_codec_control(&vp8_context_, VP8E_SET_TOKEN_PARTITIONS,
+                               token_partitions);
+    if (status) {
+      LOG(ERROR) << "vpx_codec_control VP8E_SET_TOKEN_PARTITIONS failed: "
+                 << vpx_codec_err_to_string(status);
+      return VideoEncoder::kCodecError;
+    }
+  }
   return kSuccess;
 }
 
