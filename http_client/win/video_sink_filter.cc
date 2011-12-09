@@ -239,18 +239,19 @@ HRESULT VideoSinkFilter::OnFrameReceived(IMediaSample* ptr_sample) {
   }
   const int32 width = sink_pin_->actual_config_.width;
   const int32 height = sink_pin_->actual_config_.height;
-  int32 status = frame_.InitI420(width, height, start_time, ptr_sample_buffer,
+  int32 status = frame_.InitI420(width, height, 
+                                 media_time_to_milliseconds(start_time), 
+                                 ptr_sample_buffer,
                                  ptr_sample->GetActualDataLength());
   if (status) {
     LOG(ERROR) << "OnFrameReceived frame init failed: " << status;
     return E_FAIL;
   }
   LOG(INFO) << "OnFrameReceived received a frame:"
-            << " width=" << width
-            << " height=" << height
-            << " START timestamp(seconds)=" << media_time_to_seconds(start_time)
+            << " width=" << width << " height=" << height
+            << " START timestamp(sec)=" << media_time_to_seconds(start_time)
             << " timestamp=" << start_time
-            << " END timestamp(seconds)="  << media_time_to_seconds(end_time)
+            << " END timestamp(sec)="  << media_time_to_seconds(end_time)
             << " timestamp=" << end_time
             << " size=" << frame_.buffer_length();
   int frame_status = ptr_frame_callback_->OnVideoFrameReceived(&frame_);

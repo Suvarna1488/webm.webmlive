@@ -77,7 +77,8 @@ const CLSID CLSID_VP8Encoder = {
   {0x94, 0xAF, 0x00, 0x26, 0xB9, 0x77, 0xEE, 0xAA}
 };
 
-// Utility functions for conversion between seconds and 100ns ticks.
+// Utility functions for time conversions.
+int64 media_time_to_milliseconds(REFERENCE_TIME media_time);
 double media_time_to_seconds(REFERENCE_TIME media_time);
 REFERENCE_TIME seconds_to_media_time(double seconds);
 
@@ -144,7 +145,7 @@ class MediaSourceImpl {
   // Creates A/V capture graph. Returns |kSuccess| upon success, or a
   // |WebmEncoder| status code upon failure. Updates |VideoCaptureConfig|
   // dimensions when actual dimensions differ from those requested.
-  // TODO(tomfinegan): update |AudioCaptureConfig| with actual settings.  
+  // TODO(tomfinegan): update |AudioCaptureConfig| with actual settings.
   int Init(VideoFrameCallbackInterface* ptr_video_callback,
            WebmEncoderConfig* config);
   // Runs filter graph. Returns |kSuccess| upon success, or a |WebmEncoder|
