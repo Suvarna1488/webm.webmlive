@@ -23,20 +23,30 @@
 namespace webmlive {
 
 VideoFrame::VideoFrame()
-    : width_(0), height_(0), timestamp_(0), buffer_length_(0) {
+    : keyframe_(false), width_(0), height_(0), timestamp_(0), duration_(0),
+      buffer_length_(0), format_(kVideoFormatI420) {
 }
 
 VideoFrame::~VideoFrame() {
 }
 
-int32 VideoFrame::InitI420(int32 width, int32 height, int64 timestamp,
-                           uint8* ptr_data, int32 data_length) {
+int32 VideoFrame::Init(VideoFormat format, bool keyframe, int32 width,
+                       int32 height, int64 timestamp, int64 duration,
+                       uint8* ptr_data, int32 data_length) {
   if (!ptr_data) {
+    LOG(ERROR) << "VideoFrame can't Init with NULL data pointer!";
     return kInvalidArg;
   }
+  if (format != kVideoFormatI420 && format != kVideoFormatVP8) {
+    LOG(ERROR) << "Unknown VideoFormat.";
+    return kInvalidArg;
+  }
+  format_ = format;
+  keyframe_ = keyframe;
   width_ = width;
   height_ = height;
   timestamp_ = timestamp;
+  duration_ = duration;
   if (data_length > buffer_length_) {
     buffer_length_ = data_length;
     buffer_.reset(new (std::nothrow) uint8[buffer_length_]);
@@ -51,7 +61,15 @@ int32 VideoFrame::InitI420(int32 width, int32 height, int64 timestamp,
 void VideoFrame::Swap(VideoFrame* ptr_frame) {
   CHECK_NOTNULL(buffer_.get());
   CHECK_NOTNULL(ptr_frame->buffer_.get());
-  CHECK_EQ(buffer_length_, ptr_frame->buffer_length_);
+
+  const VideoFormat temp_format = format_;
+  format_ = ptr_frame->format_;
+  ptr_frame->format_ = temp_format;
+
+  const bool temp_keyframe = keyframe_;
+  keyframe_ = ptr_frame->keyframe_;
+  ptr_frame->keyframe_ = temp_keyframe;
+
   int32 temp = width_;
   width_ = ptr_frame->width_;
   ptr_frame->width_ = temp;
@@ -60,9 +78,13 @@ void VideoFrame::Swap(VideoFrame* ptr_frame) {
   height_ = ptr_frame->height_;
   ptr_frame->height_ = temp;
 
-  int64 temp_timestamp = timestamp_;
+  int64 temp_time = timestamp_;
   timestamp_ = ptr_frame->timestamp_;
-  ptr_frame->timestamp_ = temp_timestamp;
+  ptr_frame->timestamp_ = temp_time;
+
+  temp_time = duration_;
+  duration_ = ptr_frame->duration_;
+  ptr_frame->duration_ = temp_time;
 
   buffer_.swap(ptr_frame->buffer_);
 
@@ -171,11 +193,14 @@ int32 VideoFrameQueue::CopyFrame(VideoFrame* ptr_source,
   if (ptr_target->buffer()) {
     ptr_target->Swap(ptr_source);
   } else {
-    int status = ptr_target->InitI420(ptr_source->width(),
-                                      ptr_source->height(),
-                                      ptr_source->timestamp(),
-                                      ptr_source->buffer(),
-                                      ptr_source->buffer_length());
+    int status = ptr_target->Init(ptr_source->format(),
+                                  ptr_source->keyframe(),
+                                  ptr_source->width(),
+                                  ptr_source->height(),
+                                  ptr_source->timestamp(),
+                                  ptr_source->duration(),
+                                  ptr_source->buffer(),
+                                  ptr_source->buffer_length());
     if (status) {
       LOG(ERROR) << "VideoFrame Init failed! " << status;
       return kNoMemory;

@@ -19,8 +19,13 @@
 
 namespace webmlive {
 
-// Storage class for raw video frames. Supports only I420.
-// TODO(tomfinegan): add support for conversion from common types to I420.
+enum VideoFormat {
+  kVideoFormatI420 = 0,
+  kVideoFormatVP8 = 1,
+  kVideoFormatCount = 2,
+};
+
+// Storage class for video frames. Supports I420 and VP8 frames.
 class VideoFrame {
  public:
   enum {
@@ -32,22 +37,29 @@ class VideoFrame {
   ~VideoFrame();
   // Allocates storage for |ptr_data|, sets internal fields to values of
   // caller's args, and returns |kSuccess|.
-  int32 InitI420(int32 width, int32 height, int64 timestamp, uint8* ptr_data,
-                 int32 data_length);
+  int32 Init(VideoFormat format, bool keyframe, int32 width, int32 height,
+             int64 timestamp, int64 duration, uint8* ptr_data,
+             int32 data_length);
   // Swaps |VideoFrame| member data with |ptr_frame|'s. The |VideoFrame|s
   // must be of identical size, and each must have a non-NULL buffer.
   void Swap(VideoFrame* ptr_frame);
+  bool keyframe() const { return keyframe_; }
   int32 width() const { return width_; }
   int32 height() const { return height_; }
   int64 timestamp() const { return timestamp_; }
+  int64 duration() const { return duration_; }
   uint8* buffer() const { return buffer_.get(); }
   int32 buffer_length() const { return buffer_length_; }
+  VideoFormat format() const { return format_; }
  private:
+  bool keyframe_;
   int32 width_;
   int32 height_;
   int64 timestamp_;
+  int64 duration_;
   boost::scoped_array<uint8> buffer_;
   int32 buffer_length_;
+  VideoFormat format_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoFrame);
 };
 

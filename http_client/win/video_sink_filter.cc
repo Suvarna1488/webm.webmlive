@@ -239,20 +239,23 @@ HRESULT VideoSinkFilter::OnFrameReceived(IMediaSample* ptr_sample) {
   }
   const int32 width = sink_pin_->actual_config_.width;
   const int32 height = sink_pin_->actual_config_.height;
-  int32 status = frame_.InitI420(width, height, 
-                                 media_time_to_milliseconds(start_time), 
-                                 ptr_sample_buffer,
-                                 ptr_sample->GetActualDataLength());
+  const int64 timestamp = media_time_to_milliseconds(start_time);
+  const int64 duration = media_time_to_milliseconds(end_time) - timestamp;
+  const int32 status = frame_.Init(kVideoFormatI420,
+                                   true,  // keyframe
+                                   width, height, timestamp, duration,
+                                   ptr_sample_buffer,
+                                   ptr_sample->GetActualDataLength());
   if (status) {
     LOG(ERROR) << "OnFrameReceived frame init failed: " << status;
     return E_FAIL;
   }
   LOG(INFO) << "OnFrameReceived received a frame:"
             << " width=" << width << " height=" << height
-            << " START timestamp(sec)=" << media_time_to_seconds(start_time)
-            << " timestamp=" << start_time
-            << " END timestamp(sec)="  << media_time_to_seconds(end_time)
-            << " timestamp=" << end_time
+            << " timestamp(sec)=" << (timestamp / 1000.0)
+            << " timestamp=" << timestamp
+            << " duration(sec)= " << (duration / 1000.0)
+            << " duration= " << duration
             << " size=" << frame_.buffer_length();
   int frame_status = ptr_frame_callback_->OnVideoFrameReceived(&frame_);
   if (frame_status && frame_status != WebmEncoder::kVideoFrameDropped) {
