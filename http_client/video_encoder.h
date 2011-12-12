@@ -130,7 +130,7 @@ class VideoFrameCallbackInterface {
 
 struct VpxConfig {
   // Time between keyframes, in seconds.
-  double keyframe_interval;
+  int keyframe_interval;
   // Video bitrate, in kilobits.
   int bitrate;
   // Video frame rate decimation factor.
