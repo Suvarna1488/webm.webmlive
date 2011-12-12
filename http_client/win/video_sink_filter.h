@@ -27,7 +27,6 @@
 #include "http_client/basictypes.h"
 #include "http_client/http_client_base.h"
 #include "http_client/video_encoder.h"
-#include "http_client/video_types.h"
 #include "http_client/webm_encoder.h"
 
 namespace webmlive {

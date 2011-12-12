@@ -12,7 +12,6 @@
 #include <vfwmsgs.h>
 
 #include "glog/logging.h"
-#include "http_client/video_types.h"
 #include "http_client/win/webm_encoder_dshow.h"
 #include "http_client/win/webm_guids.h"
 
@@ -71,6 +70,7 @@ HRESULT VideoSinkPin::GetMediaType(int32 type_index,
   ptr_video_info->bmiHeader.biHeight = requested_config_.height;
   // Set sub type and format data for I420.
   ptr_video_info->bmiHeader.biCompression = MAKEFOURCC('I','4','2','0');
+  const int kI420BitCount = 12;
   ptr_video_info->bmiHeader.biBitCount = kI420BitCount;
   ptr_video_info->bmiHeader.biPlanes = 1;
   ptr_media_type->SetSubtype(&MEDIASUBTYPE_I420);

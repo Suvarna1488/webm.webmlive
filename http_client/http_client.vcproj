@@ -233,10 +233,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\video_types.h"
-				>
-			</File>
-			<File
 				RelativePath=".\vpx_encoder.cc"
 				>
 			</File>

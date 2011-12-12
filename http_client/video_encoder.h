@@ -16,7 +16,6 @@
 #include "boost/thread/mutex.hpp"
 #include "http_client/basictypes.h"
 #include "http_client/http_client_base.h"
-#include "http_client/video_types.h"
 
 namespace webmlive {
 
