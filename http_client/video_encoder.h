@@ -151,15 +151,20 @@ struct WebmEncoderConfig;
 class VideoEncoder {
  public:
   enum {
-    kCodecError = -100,
+    // Libvpx reported an error.
+    kCodecError = -101,
+    // Encoder error not originating from libvpx.
+    kEncoderError = -100,
     kNoMemory = -2,
     kInvalidArg = -1,
     kSuccess = 0,
+    kDropped = 1,
   };
   VideoEncoder();
   ~VideoEncoder();
   int32 Init(const WebmEncoderConfig* ptr_config);
-  int32 EncodeFrame(const VideoFrame* ptr_frame);
+  int32 EncodeFrame(const VideoFrame* ptr_raw_frame,
+                    VideoFrame* ptr_vp8_frame);
  private:
   boost::scoped_ptr<VpxEncoder> ptr_vpx_encoder_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VideoEncoder);

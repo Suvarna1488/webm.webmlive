@@ -22,15 +22,23 @@ struct WebmEncoderConfig;
 class VpxEncoder {
  public:
   enum {
-    kNoMemory = -2,
-    kInvalidArg = -1,
-    kSuccess = 0,
+    kCodecError = VideoEncoder::kCodecError,
+    kEncoderError = VideoEncoder::kEncoderError,
+    kNoMemory = VideoEncoder::kNoMemory,
+    kInvalidArg = VideoEncoder::kInvalidArg,
+    kSuccess = VideoEncoder::kSuccess,
+    kDropped = VideoEncoder::kDropped,
   };
   VpxEncoder();
   ~VpxEncoder();
-  int Init(const WebmEncoderConfig* ptr_config);
-  int EncodeFrame(const VideoFrame* ptr_frame);
+  int32 Init(const WebmEncoderConfig* ptr_config);
+  int32 EncodeFrame(const VideoFrame* const ptr_raw_frame, 
+                    VideoFrame* ptr_vp8_frame);
  private:
+  int64 frames_in_;
+  int64 frames_out_;
+  int64 last_keyframe_time_;
+  VpxConfig config_;
   vpx_codec_ctx_t vp8_context_;
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(VpxEncoder);
 };
