@@ -224,5 +224,14 @@ int32 VideoEncoder::Init(const WebmEncoderConfig* ptr_config) {
   return ptr_vpx_encoder_->Init(ptr_config);
 }
 
+int32 VideoEncoder::EncodeFrame(const VideoFrame* ptr_raw_frame,
+                                VideoFrame* ptr_vp8_frame) {
+  if (!ptr_vpx_encoder_) {
+    LOG(ERROR) << "VideoEncoder has NULL encoder, not Init'd";
+    return kEncoderError;
+  }
+  return ptr_vpx_encoder_->EncodeFrame(ptr_raw_frame, ptr_vp8_frame);
+}
+
 }  // namespace webmlive
 
