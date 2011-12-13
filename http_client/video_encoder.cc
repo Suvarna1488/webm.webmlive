@@ -12,6 +12,14 @@
 
 #include "glog/logging.h"
 
+#if defined _MSC_VER
+// Disable warning C4505(unreferenced local function has been removed) in MSVC.
+// At the time this comment was written the warning is emitted 27 times for
+// vp8.h and vp8cx.h (included by vpx_encoder.h).
+#pragma warning(disable:4505)
+#endif
+#include "http_client/vpx_encoder.h"
+
 namespace webmlive {
 
 VideoFrame::VideoFrame()
@@ -105,7 +113,7 @@ VideoFrameQueue::~VideoFrameQueue() {
 }
 
 // Obtains lock and populates |frame_pool_| with |VideoFrame| pointers.
-int VideoFrameQueue::Init() {
+int32 VideoFrameQueue::Init() {
   boost::mutex::scoped_lock lock(mutex_);
   DCHECK(frame_pool_.empty());
   DCHECK(active_frames_.empty());
@@ -122,7 +130,7 @@ int VideoFrameQueue::Init() {
 
 // Obtains lock, copies |ptr_frame| data into |VideoFrame| from |frame_pool_|,
 // and moves the frame into |active_frames_|.
-int VideoFrameQueue::Push(VideoFrame* ptr_frame) {
+int32 VideoFrameQueue::Push(VideoFrame* ptr_frame) {
   if (!ptr_frame || !ptr_frame->buffer()) {
     LOG(ERROR) << "VideoFrameQueue can't Push a NULL/empty VideoFrame!";
     return kInvalidArg;
@@ -146,7 +154,7 @@ int VideoFrameQueue::Push(VideoFrame* ptr_frame) {
 
 // Obtains lock, copies front |VideoFrame| from |active_frames_| to
 // |ptr_frame|, and moves the consumed |VideoFrame| back into |frame_pool_|.
-int VideoFrameQueue::Pop(VideoFrame* ptr_frame) {
+int32 VideoFrameQueue::Pop(VideoFrame* ptr_frame) {
   if (!ptr_frame) {
     LOG(ERROR) << "VideoFrameQueue can't Pop into a NULL VideoFrame!";
     return kInvalidArg;
@@ -177,8 +185,8 @@ void VideoFrameQueue::DropFrames() {
   }
 }
 
-int VideoFrameQueue::CopyFrame(VideoFrame* ptr_source,
-                               VideoFrame* ptr_target) {
+int32 VideoFrameQueue::CopyFrame(VideoFrame* ptr_source,
+                                 VideoFrame* ptr_target) {
   if (!ptr_source || !ptr_target) {
     return kInvalidArg;
   }
@@ -201,6 +209,20 @@ int VideoFrameQueue::CopyFrame(VideoFrame* ptr_source,
 ///////////////////////////////////////////////////////////////////////////////
 // VideoEncoder
 //
+
+VideoEncoder::VideoEncoder() {
+}
+
+VideoEncoder::~VideoEncoder() {
+}
+
+int32 VideoEncoder::Init(const WebmEncoderConfig* ptr_config) {
+  ptr_vpx_encoder_.reset(new (std::nothrow) VpxEncoder());
+  if (!ptr_vpx_encoder_) {
+    return kNoMemory;
+  }
+  return ptr_vpx_encoder_->Init(ptr_config);
+}
 
 }  // namespace webmlive
 
