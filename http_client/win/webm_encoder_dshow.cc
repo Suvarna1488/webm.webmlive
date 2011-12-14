@@ -135,7 +135,7 @@ int MediaSourceImpl::Init(VideoFrameCallbackInterface* ptr_video_callback,
     LOG(ERROR) << "CreateGraphInterfaces failed: " << status;
     return WebmEncoder::kInitFailed;
   }
-  if (!config.video_device_name.empty()) {
+  if (!config_.video_device_name.empty()) {
     video_device_name_ = string_to_wstring(config_.video_device_name);
   }
   status = CreateVideoSource();
