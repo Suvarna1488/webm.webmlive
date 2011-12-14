@@ -13,6 +13,7 @@
 #include "boost/scoped_ptr.hpp"
 #include "http_client/basictypes.h"
 #include "http_client/http_client_base.h"
+#include "http_client/video_encoder.h"
 
 namespace webmlive {
 // Special value interpreted by |WebmEncoder| as "use implementation default".
@@ -90,7 +91,7 @@ class WebmEncoderImpl;
 
 // Basic encoder interface class intended to hide platform specific encoder
 // implementation details.
-class WebmEncoder {
+class WebmEncoder : public VideoFrameCallbackInterface {
  public:
   enum {
     // Encoder implementation unable to configure audio source.
@@ -137,6 +138,10 @@ class WebmEncoder {
   double encoded_duration();
   // Returns |WebmEncoderConfig| with fields set to default values.
   static WebmEncoderConfig DefaultConfig();
+
+  // VideoFrameCallbackInterface methods
+  virtual int32 OnVideoFrameReceived(VideoFrame* ptr_frame);
+
  private:
   // Encoder object.
   boost::scoped_ptr<WebmEncoderImpl> ptr_encoder_;
