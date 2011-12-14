@@ -91,11 +91,13 @@ struct WebmEncoderConfig {
 
 class MediaSourceImpl;
 
-// Basic encoder interface class intended to hide platform specific encoder
-// implementation details.
+// Top level WebM encoder class. Manages capture from A/V input devices, VP8 
+// encoding, Vorbis encoding, and muxing into a WebM stream.
 class WebmEncoder : public VideoFrameCallbackInterface {
  public:
   enum {
+    // VideoFrame dropped.
+    kVideoFrameDropped = -116,
     // AV capture source stopped on its own.
     kAVCaptureStopped = -115,
     // AV capture implementation unable to setup video frame sink.
@@ -164,6 +166,12 @@ class WebmEncoder : public VideoFrameCallbackInterface {
 
   // Encoder thread object.
   boost::shared_ptr<boost::thread> encode_thread_;
+  // Queue used to push video frames from |MediaSourceImpl| into 
+  // |EncoderThread|.
+  VideoFrameQueue video_queue_;
+  // Most recent frame from |video_queue_|.
+  VideoFrame video_frame_;
+
   WEBMLIVE_DISALLOW_COPY_AND_ASSIGN(WebmEncoder);
 };
 
