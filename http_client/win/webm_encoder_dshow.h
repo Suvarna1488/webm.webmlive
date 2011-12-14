@@ -142,9 +142,10 @@ class MediaSourceImpl {
   };
   MediaSourceImpl();
   ~MediaSourceImpl();
-  // TODO(tomfinegan): fix the misleading comment.
-  // Creates WebM encoder graph. Returns |kSuccess| upon success, or a
-  // |WebmEncoder| status code upon failure.
+  // Creates A/V capture graph. Returns |kSuccess| upon success, or a
+  // |WebmEncoder| status code upon failure. Updates |VideoCaptureConfig|
+  // dimensions when actual dimensions differ from those requested.
+  // TODO(tomfinegan): update |AudioCaptureConfig| with actual settings.
   int Init(VideoFrameCallbackInterface* ptr_video_callback,
            const WebmEncoderConfig& config);
   // Runs filter graph. Returns |kSuccess| upon success, or a |WebmEncoder|
